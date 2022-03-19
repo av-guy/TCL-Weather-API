@@ -42,6 +42,7 @@ oo::class create OpenWeatherAPI {
         ZipCodeAPI create zipAPI $zipCodeAPIKey;
         
         set zipCodeAPI zipAPI;
+        set zipCodeSubs [dict create];
         set zipCodeData [dict create];
         set apiKey $openWeatherAPIKey;
         set baseURL "https://api.openweathermap.org/data/2.5";
@@ -110,17 +111,17 @@ oo::class create OpenWeatherAPI {
         return $zipCodeData;
     }
     
-    method put {value {parameters {}}} {
+    method put {value {params {}}} {
         my getHourForecast $value;
     }
     
-    method readStatus {{parameters {}}} {
+    method status {{params {}}} {
         my variable zipCodeData;
         
         set code [catch {
 
-            set zipCode [dict get $parameters ZipCode];
-            set parameterValue [dict get $parameters Parameter];
+            set zipCode [dict get $params ZipCode];
+            set parameterValue [dict get $params Parameter];
             set weatherData [dict get $zipCodeData $zipCode];
             
             if {[dict exists $weatherData $parameterValue]} {
@@ -138,9 +139,74 @@ oo::class create OpenWeatherAPI {
             return $result;
         }   
     }
+    
+    method subscribe {callback {params {}}} {
+        set code [catch {
+            my variable zipCodeSubs;
+            
+            set zipCode [dict get $params ZipCode];
+            set paramValue [dict get $params Parameter];
+            
+            if {![dict exists $zipCodeSubs $zipCode]} {
+                dict append zipCodeSubs $zipCode [dict create];
+            }
+            
+            set subs [dict get $zipCodeSubs $zipCode];
+            
+            if {![dict exists $subs $paramValue]} {
+                puts "adding a callback";
+                dict append subs $paramValue callback;
+                puts $subs;
+            } else {
+                dict set subs $paramValue callback;
+            }
+        } result]
+        
+        if {$code == 1} {
+            puts "Error: ${result}";
+            return;
+        }
+    }
+    
+    method sync {params} {
+        set code [catch {
+            my variable zipCodeData;
+            my variable zipCodeSubs;
+            
+            set zipCode [dict get $params ZipCode];
+            set currentSubs [dict get $zipCodeSubs $zipCode];
+            
+            puts $zipCodeSubs;
+            
+            my getHourForecast $zipCode;
+            
+            dict for {key value} [dict get $zipCodeData $zipCode] {
+                puts $currentSubs;
+                if {[dict exists $currentSubs $key]} {
+                    puts "it exists";
+                    set callback [dict get $currentSubs $key]
+                    callback $value [dict create ZipCode $zipCode Parameter $key]
+                }
+            }
+                
+            
+        } result]
+        
+        if {$code == 1} {
+            puts "Error: ${result}";
+            return;
+        }
+    }
+}
+
+proc myCallback {val params} {
+    puts $val;
+    puts $params;
 }
 
 OpenWeatherAPI create openWeatherAPI $env(OPEN_WEATHER_API_KEY) $env(ZIP_CODE_API_KEY);
 openWeatherAPI put 93306;
 
-puts [openWeatherAPI readStatus [dict create ZipCode 93306 Parameter Temp]];
+puts [openWeatherAPI status [dict create ZipCode 93306 Parameter Temp]];
+openWeatherAPI subscribe myCallback [dict create ZipCode 93306 Parameter Temp];
+openWeatherAPI sync [dict create ZipCode 93306];
