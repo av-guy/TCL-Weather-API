@@ -37,7 +37,7 @@ oo::class create OpenWeatherAPI {
         my variable baseURL;
         my variable zipCodeAPI;
         my variable zipCodeData;
-        my variable zipCodeSubscriptions;
+        my variable zipCodeSubs;
         
         ZipCodeAPI create zipAPI $zipCodeAPIKey;
         
@@ -136,12 +136,7 @@ oo::class create OpenWeatherAPI {
             return;
         } else {
             return $result;
-        }
-        
-    }
-    
-    method subscribeFor {callback {parameters {}}} {
-        
+        }   
     }
 }
 
