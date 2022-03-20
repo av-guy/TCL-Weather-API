@@ -151,15 +151,7 @@ oo::class create OpenWeatherAPI {
                 dict append zipCodeSubs $zipCode [dict create];
             }
             
-            set subs [dict get $zipCodeSubs $zipCode];
-            
-            if {![dict exists $subs $paramValue]} {
-                puts "adding a callback";
-                dict append subs $paramValue callback;
-                puts $subs;
-            } else {
-                dict set subs $paramValue callback;
-            }
+            dict set zipCodeSubs $zipCode $paramValue $callback;
         } result]
         
         if {$code == 1} {
@@ -176,16 +168,9 @@ oo::class create OpenWeatherAPI {
             set zipCode [dict get $params ZipCode];
             set currentSubs [dict get $zipCodeSubs $zipCode];
             
-            puts $zipCodeSubs;
-            
-            my getHourForecast $zipCode;
-            
-            dict for {key value} [dict get $zipCodeData $zipCode] {
-                puts $currentSubs;
+            foreach {key value} [dict get $zipCodeData $zipCode] {
                 if {[dict exists $currentSubs $key]} {
-                    puts "it exists";
-                    set callback [dict get $currentSubs $key]
-                    callback $value [dict create ZipCode $zipCode Parameter $key]
+                    [dict get $currentSubs $key] $value [dict create ZipCode $zipCode Parameter $key];
                 }
             }
                 
@@ -205,8 +190,9 @@ proc myCallback {val params} {
 }
 
 OpenWeatherAPI create openWeatherAPI $env(OPEN_WEATHER_API_KEY) $env(ZIP_CODE_API_KEY);
-openWeatherAPI put 93306;
 
-puts [openWeatherAPI status [dict create ZipCode 93306 Parameter Temp]];
+openWeatherAPI put 93306;
 openWeatherAPI subscribe myCallback [dict create ZipCode 93306 Parameter Temp];
+openWeatherAPI subscribe myCallback [dict create ZipCode 93306 Parameter TempMax];
+
 openWeatherAPI sync [dict create ZipCode 93306];
