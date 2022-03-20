@@ -170,7 +170,8 @@ oo::class create OpenWeatherAPI {
             
             foreach {key value} [dict get $zipCodeData $zipCode] {
                 if {[dict exists $currentSubs $key]} {
-                    [dict get $currentSubs $key] $value [dict create ZipCode $zipCode Parameter $key];
+                    set callback [dict get $currentSubs $key];
+                    $callback $value [dict create ZipCode $zipCode Parameter $key];
                 }
             }
                 
@@ -183,16 +184,3 @@ oo::class create OpenWeatherAPI {
         }
     }
 }
-
-proc myCallback {val params} {
-    puts $val;
-    puts $params;
-}
-
-OpenWeatherAPI create openWeatherAPI $env(OPEN_WEATHER_API_KEY) $env(ZIP_CODE_API_KEY);
-
-openWeatherAPI put 93306;
-openWeatherAPI subscribe myCallback [dict create ZipCode 93306 Parameter Temp];
-openWeatherAPI subscribe myCallback [dict create ZipCode 93306 Parameter TempMax];
-
-openWeatherAPI sync [dict create ZipCode 93306];
